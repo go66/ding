@@ -17,7 +17,7 @@ Your terminal comes back immediately, and two minutes later a small borderless c
 │ REMINDER · 2m                      │
 │ Pick up the kids                   │
 │ ────────────────────────────────── │
-│ Snooze for                         │
+│ Snooze for (min)                   │
 │ [1]  [2]  [3]  [4]  [5]            │
 │ [    Snooze    ]  [   Dismiss   ]  │
 └────────────────────────────────────┘
@@ -30,6 +30,7 @@ Your terminal comes back immediately, and two minutes later a small borderless c
 - **Snooze with memory** — pick 1–5 minutes; the last choice is preselected next time (first run defaults to 1 minute)
 - **Stacked alerts** — a second reminder opens above the first instead of hiding it
 - **Borderless and draggable** — no title bar; drag the card by any empty area
+- **Crisp on high-DPI screens** — the window is DPI-aware and scales its own layout, so text stays sharp at 150% / 200% instead of being stretched by Windows
 - **A real chime** — a short synthesized bell, not a system beep
 - **`--list` / `--cancel`** — see what is pending, kill one by id prefix or all of them
 - Pure standard library plus `tkinter`; nothing to `pip install`

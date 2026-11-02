@@ -31,7 +31,7 @@ import uuid
 from pathlib import Path
 
 APP = "ding"
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 IS_WIN = os.name == "nt"
 IS_MAC = sys.platform == "darwin"
@@ -334,6 +334,29 @@ GHOST_HOVER = "#39435a"
 SNOOZE_CHOICES = (1, 2, 3, 4, 5)
 
 
+def enable_dpi_awareness() -> None:
+    """Make Tk render at native resolution on high-DPI screens.
+
+    This has to happen before the process creates its first window: once Tk has
+    opened one, the DPI mode is locked and the whole UI stays system-stretched,
+    which looks soft on a 150% / 200% display.
+    """
+    if not IS_WIN:
+        return
+    import ctypes
+
+    try:
+        # PROCESS_SYSTEM_DPI_AWARE = 1
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        return
+    except Exception:
+        pass
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()  # older Windows
+    except Exception:
+        pass
+
+
 def usable_area(root):
     """Usable screen area (taskbar/dock excluded) as (left, top, right, bottom)."""
     if IS_WIN:
@@ -374,6 +397,8 @@ def show_alert(message: str, label: str, default_minutes: int, position: int = 0
         print(f"ding: this Python has no tkinter ({exc})", file=sys.stderr)
         return "dismiss", default_minutes
 
+    enable_dpi_awareness()
+
     try:
         root = tk.Tk()
     except Exception as exc:
@@ -382,6 +407,25 @@ def show_alert(message: str, label: str, default_minutes: int, position: int = 0
 
     state = {"action": "dismiss", "minutes": default_minutes}
     drag = {"active": False, "dx": 0, "dy": 0}
+
+    # The layout below is authored for a 96 dpi display. Scale every pixel and
+    # keep point-sized fonts in step so the card keeps its proportions on a
+    # 150% / 200% screen instead of turning tiny.
+    dpi = 96.0
+    if not IS_MAC:
+        try:
+            dpi = float(root.winfo_fpixels("1i"))
+        except tk.TclError:
+            pass
+    scale = max(1.0, min(3.0, dpi / 96.0))
+    if not IS_MAC:
+        try:
+            root.tk.call("tk", "scaling", dpi / 72.0)
+        except tk.TclError:
+            pass
+
+    def px(value: int) -> int:
+        return max(1, int(round(value * scale)))
 
     root.title("Ding")
     root.configure(bg=BORDER)
@@ -403,8 +447,8 @@ def show_alert(message: str, label: str, default_minutes: int, position: int = 0
     )
 
     # the 1px pad around body paints a hairline border for the borderless window
-    body = tk.Frame(root, bg=BG, padx=20, pady=14)
-    body.pack(fill="both", expand=True, padx=1, pady=1)
+    body = tk.Frame(root, bg=BG, padx=px(20), pady=px(14))
+    body.pack(fill="both", expand=True, padx=px(1), pady=px(1))
 
     brand_label = tk.Label(
         body, text=f"REMINDER  ·  {label}", bg=BG, fg=MUTED,
@@ -414,20 +458,20 @@ def show_alert(message: str, label: str, default_minutes: int, position: int = 0
 
     message_label = tk.Label(
         body, text=message, bg=BG, fg=TEXT, font=(family, 12, "bold"),
-        wraplength=336, justify="left", anchor="w",
+        wraplength=px(336), justify="left", anchor="w",
     )
-    message_label.pack(fill="x", pady=(6, 0))
+    message_label.pack(fill="x", pady=(px(6), 0))
 
-    separator = tk.Frame(body, bg=SURFACE, height=1)
-    separator.pack(fill="x", pady=10)
+    separator = tk.Frame(body, bg=SURFACE, height=px(1))
+    separator.pack(fill="x", pady=px(10))
 
     hint_label = tk.Label(
-        body, text="Snooze for", bg=BG, fg=MUTED, font=(family, 9), anchor="w",
+        body, text="Snooze for (min)", bg=BG, fg=MUTED, font=(family, 9), anchor="w",
     )
     hint_label.pack(fill="x")
 
     chips_row = tk.Frame(body, bg=BG)
-    chips_row.pack(fill="x", pady=(6, 0))
+    chips_row.pack(fill="x", pady=(px(6), 0))
     chips = {}
 
     def select(minutes: int) -> None:
@@ -441,9 +485,9 @@ def show_alert(message: str, label: str, default_minutes: int, position: int = 0
     for index, minutes in enumerate(SNOOZE_CHOICES):
         chip = tk.Label(
             chips_row, text=str(minutes), bg=SURFACE, fg=MUTED,
-            font=(family, 9, "bold"), pady=5, cursor="hand2",
+            font=(family, 9, "bold"), pady=px(5), cursor="hand2",
         )
-        chip.pack(side="left", expand=True, fill="x", padx=(0 if index == 0 else 5, 0))
+        chip.pack(side="left", expand=True, fill="x", padx=(0 if index == 0 else px(5), 0))
         chip.bind("<Button-1>", lambda _e, m=minutes: select(m))
         chip.bind(
             "<Enter>",
@@ -458,7 +502,7 @@ def show_alert(message: str, label: str, default_minutes: int, position: int = 0
         chips[minutes] = chip
 
     actions = tk.Frame(body, bg=BG)
-    actions.pack(fill="x", pady=(14, 0))
+    actions.pack(fill="x", pady=(px(14), 0))
     actions.columnconfigure(0, weight=1, uniform="btn")
     actions.columnconfigure(1, weight=1, uniform="btn")
 
@@ -475,18 +519,18 @@ def show_alert(message: str, label: str, default_minutes: int, position: int = 0
 
     snooze_btn = tk.Label(
         actions, text="Snooze", bg=ACCENT, fg="#ffffff",
-        font=(family, 10, "bold"), pady=8, cursor="hand2",
+        font=(family, 10, "bold"), pady=px(8), cursor="hand2",
     )
-    snooze_btn.grid(row=0, column=0, sticky="ew", padx=(0, 4))
+    snooze_btn.grid(row=0, column=0, sticky="ew", padx=(0, px(4)))
     snooze_btn.bind("<Button-1>", lambda _e: finish("snooze"))
     snooze_btn.bind("<Enter>", lambda _e: snooze_btn.configure(bg=ACCENT_HOVER))
     snooze_btn.bind("<Leave>", lambda _e: snooze_btn.configure(bg=ACCENT))
 
     dismiss_btn = tk.Label(
         actions, text="Dismiss", bg=SURFACE, fg=TEXT,
-        font=(family, 10, "bold"), pady=8, cursor="hand2",
+        font=(family, 10, "bold"), pady=px(8), cursor="hand2",
     )
-    dismiss_btn.grid(row=0, column=1, sticky="ew", padx=(4, 0))
+    dismiss_btn.grid(row=0, column=1, sticky="ew", padx=(px(4), 0))
     dismiss_btn.bind("<Button-1>", lambda _e: finish("dismiss"))
     dismiss_btn.bind("<Enter>", lambda _e: dismiss_btn.configure(bg=GHOST_HOVER))
     dismiss_btn.bind("<Leave>", lambda _e: dismiss_btn.configure(bg=SURFACE))
@@ -519,15 +563,15 @@ def show_alert(message: str, label: str, default_minutes: int, position: int = 0
     root.protocol("WM_DELETE_WINDOW", lambda: finish("dismiss"))
 
     root.update_idletasks()
-    width = max(376, root.winfo_reqwidth())
+    width = max(px(376), root.winfo_reqwidth())
     height = root.winfo_reqheight()
     left, top, right, bottom = usable_area(root)
-    margin = 20
+    margin = px(20)
     x = max(left + margin, right - width - margin)
     # stack alerts upwards from the bottom-right corner instead of overlapping
-    y = bottom - height - margin - position * (height + 8)
+    y = bottom - height - margin - position * (height + px(8))
     if y < top + margin:
-        y = top + margin + position * 28
+        y = top + margin + position * px(28)
     root.geometry(f"{width}x{height}+{x}+{y}")
     try:
         root.lift()

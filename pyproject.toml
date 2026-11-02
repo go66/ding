@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ding-cli"
-version = "1.1.0"
+version = "1.1.1"
 description = "Cross-platform CLI countdown reminder with a snooze window"
 readme = { text = "ding 2m \"Pick up the kids\"", content-type = "text/plain" }
 requires-python = ">=3.8"
