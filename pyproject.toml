@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ding-cli"
+version = "1.1.0"
+description = "Cross-platform CLI countdown reminder with a snooze window"
+readme = { text = "ding 2m \"Pick up the kids\"", content-type = "text/plain" }
+requires-python = ">=3.8"
+license = { text = "MIT" }
+keywords = ["reminder", "timer", "countdown", "cli", "snooze"]
+classifiers = [
+    "Environment :: Console",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Topic :: Utilities",
+]
+
+[project.scripts]
+ding = "ding:main"
+
+[tool.setuptools]
+py-modules = ["ding"]
+
+# ship the "ding" chime with the package
+[tool.setuptools.data-files]
+"share/ding" = ["ding.wav"]
